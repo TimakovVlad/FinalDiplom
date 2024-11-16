@@ -38,10 +38,10 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')    # Cвязь с моделью Order
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)                      # Cвязь с моделью Product
+    quantity = models.PositiveIntegerField()                                            # Количество товара в заказе
+    price = models.DecimalField(max_digits=10, decimal_places=2)                        # Цена товара на момент добавления в заказ
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
