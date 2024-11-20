@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Order, OrderItem, Cart, CartItem
+from .models import Order, OrderItem, Cart, CartItem, Contact
 from .serializers import OrderSerializer, OrderItemSerializer, CartSerializer, CartItemSerializer
 from products.models import Product
 
@@ -20,10 +20,45 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def list(self, request, *args, **kwargs):
-        # Получение списка заказов пользователя
+        """Получение списка заказов пользователя"""
         queryset = self.filter_queryset(self.get_queryset().filter(user=request.user))
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    def create_from_cart(self, request):
+        """Создание заказа на основе корзины"""
+        cart = Cart.objects.filter(user=request.user).first()
+        if not cart or not cart.items.exists():
+            return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+        contact_id = request.data.get('contact_id')
+        try:
+            contact = Contact.objects.get(id=contact_id, user=request.user)
+        except Contact.DoesNotExist:
+            return Response({'error': 'Contact not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        order = Order.objects.create(user=request.user, contact=contact)
+
+        # Переносим элементы корзины в заказ
+        total_amount = 0
+        for cart_item in cart.items.all():
+            order_item = OrderItem.objects.create(
+                order=order,
+                product=cart_item.product,
+                quantity=cart_item.quantity,
+                price=cart_item.product.price
+            )
+            total_amount += order_item.quantity * order_item.price
+
+        order.total_amount = total_amount
+        order.save()
+
+        # Очищаем корзину
+        cart.items.all().delete()
+
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
