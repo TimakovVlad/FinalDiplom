@@ -29,6 +29,7 @@ class Order(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)                                        # Автоматическое обновление при каждом изменении
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     contact = models.ForeignKey('Contact', on_delete=models.SET_NULL, null=True)
