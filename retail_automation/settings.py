@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     'products',
     'orders',
 
+    # другие приложения
+    'django_extensions',
+
     # DRF
     'rest_framework',
     'rest_framework.authtoken',

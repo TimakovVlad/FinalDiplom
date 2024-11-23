@@ -3,9 +3,11 @@ from .models import Order, OrderItem, Cart, CartItem
 
 class OrderItemSerializer(serializers.ModelSerializer):
     # Сериализатор для единицы товара в заказе
+    product_name = serializers.ReadOnlyField(source='product.name')
+
     class Meta:
         model = OrderItem
-        fields = ['product', 'quantity', 'price']
+        fields = ['id', 'product', 'product_name', 'quantity', 'price']
 
 class OrderSerializer(serializers.ModelSerializer):
     # Вложенный сериализатор для связи с OrderItem
