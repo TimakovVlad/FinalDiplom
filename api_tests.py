@@ -1,17 +1,28 @@
 import requests
 
-BASE_URL = "http://127.0.0.1:8000/api"
+BASE_URL = "http://127.0.0.1:8000/api/"
 USERNAME = "admin"
 PASSWORD = "admin"
 
 
-def get_token(username=USERNAME, password=PASSWORD):
-    # Получаем JWT токен
-    response = requests.post(BASE_URL + "/token/", data={"username": username, "password": password})
+# def get_token(username=USERNAME, password=PASSWORD):
+#     # Получаем JWT токен
+#     response = requests.post(BASE_URL + "/token/", data={"username": username, "password": password})
+#     if response.status_code == 200:
+#         return response.json().get("access")
+#     print("Ошибка получения токена:", response.status_code, response.text)
+#     return None
+
+def test_user_login(username=USERNAME, password=PASSWORD):
+    url = f"{BASE_URL}login/"
+    data = {"username": username, "password": password}
+    response = requests.post(url, data=data)
     if response.status_code == 200:
-        return response.json().get("access")
-    print("Ошибка получения токена:", response.status_code, response.text)
-    return None
+        print("Токен получен успешно:", response.json().get("token"))
+    else:
+        print("Ошибка при авторизации. Код ответа:", response.status_code)
+        print("Ответ сервера:", response.text)
+
 
 
 # def create_product(token, name, description, price, stock):
@@ -64,42 +75,42 @@ def get_token(username=USERNAME, password=PASSWORD):
 
 
 
-def add_item_to_cart(token, product_id, quantity):
-    headers = {"Authorization": f"Bearer {token}"}
-    data = {
-        "product_id": product_id,
-        "quantity": quantity
-    }
-    response = requests.post(BASE_URL + "/cart/", headers=headers, json=data)
-    if response.status_code == 201:
-        print("Товар успешно добавлен в корзину:", response.json())
-    else:
-        print("Ошибка при добавлении товара в корзину:", response.status_code, response.text)
-
-def create_order_from_cart(client, user, product, contact):
-    client.force_authenticate(user=user)
-
-    # Добавление товара в корзину
-    response = client.post('/api/cart/', {'product_id': product.id, 'quantity': 2})
-    assert response.status_code == 201
-
-    # Создание заказа из корзины
-    response = client.post('/api/orders/create-from-cart/', {'contact_id': contact.id})
-    assert response.status_code == 201
-
-    # Проверяем, что корзина пуста
-    response = client.get('/api/cart/')
-    assert len(response.data['items']) == 0
-
-    # Проверяем, что заказ создан
-    response = client.get('/api/orders/')
-    assert len(response.data) == 1
-    assert response.data[0]['status'] == 'pending'
+# def add_item_to_cart(token, product_id, quantity):
+#     headers = {"Authorization": f"Bearer {token}"}
+#     data = {
+#         "product_id": product_id,
+#         "quantity": quantity
+#     }
+#     response = requests.post(BASE_URL + "cart/", headers=headers, json=data)
+#     if response.status_code == 201:
+#         print("Товар успешно добавлен в корзину:", response.json())
+#     else:
+#         print("Ошибка при добавлении товара в корзину:", response.status_code, response.text)
+#
+# def create_order_from_cart(client, user, product, contact):
+#     client.force_authenticate(user=user)
+#
+#     # Добавление товара в корзину
+#     response = client.post('api/cart/', {'product_id': product.id, 'quantity': 2})
+#     assert response.status_code == 201
+#
+#     # Создание заказа из корзины
+#     response = client.post('api/orders/create-from-cart/', {'contact_id': contact.id})
+#     assert response.status_code == 201
+#
+#     # Проверяем, что корзина пуста
+#     response = client.get('api/cart/')
+#     assert len(response.data['items']) == 0
+#
+#     # Проверяем, что заказ создан
+#     response = client.get('api/orders/')
+#     assert len(response.data) == 1
+#     assert response.data[0]['status'] == 'pending'
 
 
 def test_user_registration(username, email, password):
     """Тест для регистрации нового пользователя."""
-    url = f"{BASE_URL}/register/"
+    url = f"{BASE_URL}register/"
     user_data = {
         "username": username,
         "email": email,
@@ -118,7 +129,8 @@ def test_user_registration(username, email, password):
 
 
 if __name__ == "__main__":
-    test_user_registration("seregaP", "sp96@ya.ru", "sergey288")
+    # test_user_registration("seregaP", "sp96@ya.ru", "sergey288")
+    test_user_login("seregaP", "sergey288")
     # token = get_token("seregaP", "sergey288")
     # if token:
     #     # Добавление товара в корзину
