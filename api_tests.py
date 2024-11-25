@@ -13,33 +13,43 @@ PASSWORD = "admin"
 #     print("Ошибка получения токена:", response.status_code, response.text)
 #     return None
 
-def test_user_login(username=USERNAME, password=PASSWORD):
-    url = f"{BASE_URL}login/"
+def user_login(username=USERNAME, password=PASSWORD):
+    url = f"{BASE_URL}users/login/"
     data = {"username": username, "password": password}
     response = requests.post(url, data=data)
     if response.status_code == 200:
         print("Токен получен успешно:", response.json().get("token"))
+        return response.json().get("token")
     else:
         print("Ошибка при авторизации. Код ответа:", response.status_code)
         print("Ответ сервера:", response.text)
 
 
 
-# def create_product(token, name, description, price, stock):
-#     # Создаем продукт через API
-#     headers = {"Authorization": f"Bearer {token}"}
-#     data = {
-#         "name": name,
-#         "description": description,
-#         "price": price,
-#         "stock": stock
-#     }
-#     response = requests.post(BASE_URL + "/products/", headers=headers, json=data)
-#     if response.status_code == 201:
-#         print("Продукт успешно создан:", response.json())
-#         return response.json().get("id")  # Возвращаем ID созданного продукта
-#     print("Ошибка при создании продукта:", response.status_code, response.text)
-#     return None
+def create_product(token, name, description, price, stock):
+    # Создаем продукт через API
+    headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+    }
+    data = {
+        "name": "Тестовый продукт",
+        "description": "Описание тестового продукта",
+        "category": 1,
+        "supplier": "Тестовый поставщик",
+        "price": "500.00",
+        "quantity": 10,
+        "parameters": {
+        "color": "red",
+        "size": "L"
+    }
+        }
+    response = requests.post(BASE_URL + "products/products/", headers=headers, json=data)
+    if response.status_code == 201:
+        print("Продукт успешно создан:", response.json())
+        return response.json().get("id")  # Возвращаем ID созданного продукта
+    print("Ошибка при создании продукта:", response.status_code, response.text)
+    return None
 #
 #
 # def create_order(token, product_ids, quantities, contact_id):
@@ -127,12 +137,22 @@ def test_user_registration(username, email, password):
         print("Код ответа:", response.status_code)
         print("Ответ сервера:", response.json())
 
+def create_category(token, name):
+    headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+    }
+    data = {
+        "name": name
+    }
+    response = requests.post(BASE_URL + "products/categories/", headers=headers, json=data)
+    if response.status_code == 201:
+        print("Категория успешно создана:", response.json())
 
 if __name__ == "__main__":
     # test_user_registration("seregaP", "sp96@ya.ru", "sergey288")
-    test_user_login("seregaP", "sergey288")
-    # token = get_token("seregaP", "sergey288")
-    # if token:
+    token = user_login()
+    if token:
     #     # Добавление товара в корзину
     #     product_id = 1  # ID товара, который вы хотите добавить в корзину
     #     quantity = 2  # Количество товара, которое вы хотите добавить в корзину
@@ -141,3 +161,5 @@ if __name__ == "__main__":
     #     # Создание заказа из корзины
     #     contact_id = 1  # ID контакта, который вы хотите использовать для заказа
     #     create_order_from_cart(token, contact_id)
+        create_category(token, "Категория 1")
+        create_product(token, "Товар 1", "Описание товара 1", 100.0, 10)
