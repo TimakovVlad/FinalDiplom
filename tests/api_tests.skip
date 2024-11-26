@@ -85,17 +85,17 @@ def create_product(token, name, description, price, stock):
 
 
 
-# def add_item_to_cart(token, product_id, quantity):
-#     headers = {"Authorization": f"Bearer {token}"}
-#     data = {
-#         "product_id": product_id,
-#         "quantity": quantity
-#     }
-#     response = requests.post(BASE_URL + "cart/", headers=headers, json=data)
-#     if response.status_code == 201:
-#         print("Товар успешно добавлен в корзину:", response.json())
-#     else:
-#         print("Ошибка при добавлении товара в корзину:", response.status_code, response.text)
+def add_item_to_cart(token, product_id, quantity):
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {
+        "product_id": product_id,
+        "quantity": quantity
+    }
+    response = requests.post(BASE_URL + "orders/create-from-cart/", headers=headers, json=data)
+    if response.status_code == 201:
+        print("Товар успешно добавлен в корзину:", response.json())
+    else:
+        print("Ошибка при добавлении товара в корзину:", response.status_code, response.text)
 #
 # def create_order_from_cart(client, user, product, contact):
 #     client.force_authenticate(user=user)

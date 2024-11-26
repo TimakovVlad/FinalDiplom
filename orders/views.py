@@ -84,10 +84,15 @@ class CartViewSet(viewsets.ViewSet):
             return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={'quantity': request.data.get('quantity', 1)}  # По умолчанию 1
+        )
+
         if not created:
             # Если товар уже в корзине, увеличиваем количество
-            cart_item.quantity += quantity
+            cart_item.quantity += int(request.data.get('quantity', 1))
         else:
             cart_item.quantity = quantity
         cart_item.save()
