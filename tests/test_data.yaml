@@ -1,0 +1,17 @@
+categories:
+  - name: "Электроника"
+    products:
+      - name: "Смартфон"
+        description: "Новый мощный смартфон"
+        price: 30000
+        quantity: 50
+      - name: "Наушники"
+        description: "Беспроводные наушники"
+        price: 5000
+        quantity: 200
+  - name: "Бытовая техника"
+    products:
+      - name: "Холодильник"
+        description: "Энергоэффективный холодильник"
+        price: 45000
+        quantity: 20

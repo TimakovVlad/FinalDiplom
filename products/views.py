@@ -1,8 +1,11 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAdminUser
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
 from rest_framework.permissions import IsAuthenticated
+from products.tasks import import_products_from_yaml
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """CRUD для категорий"""
@@ -32,3 +35,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+class ImportProductsView(APIView):
+    """Запуск импорта товаров из YAML"""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        yaml_path = request.data.get('yaml_path')
+        if not yaml_path:
+            return Response({"error": "Не указан путь к YAML-файлу"}, status=400)
+
+        import_products_from_yaml.delay(yaml_path)
+        return Response({"message": "Импорт начат. Проверьте Celery задачи для статуса выполнения."}, status=202)

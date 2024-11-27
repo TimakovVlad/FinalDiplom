@@ -127,18 +127,16 @@ class CartViewSet(viewsets.ViewSet):
 
 
 class AddToCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         user = request.user
         product_id = request.data.get('product_id')
         quantity = request.data.get('quantity', 1)
 
-        # Проверяем, существует ли продукт
         product = get_object_or_404(Product, id=product_id)
 
-        # Получаем или создаем корзину пользователя
-        cart, created = Cart.objects.get_or_create(user=user)
-
-        # Проверяем, есть ли этот продукт уже в корзине
+        cart, _ = Cart.objects.get_or_create(user=user)
         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
         if not created:
             cart_item.quantity += int(quantity)
@@ -149,6 +147,8 @@ class AddToCartView(APIView):
         return Response({"message": "Продукт успешно добавлен в корзину."}, status=status.HTTP_201_CREATED)
 
 class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         user = request.user
         cart = get_object_or_404(Cart, user=user)
@@ -158,6 +158,8 @@ class CartView(APIView):
 
 
 class RemoveFromCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def delete(self, request, item_id):
         user = request.user
         cart_item = get_object_or_404(CartItem, id=item_id, cart__user=user)
@@ -166,6 +168,8 @@ class RemoveFromCartView(APIView):
 
 
 class CreateOrderView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         user = request.user
         contact_id = request.data.get('contact_id')
@@ -181,3 +185,25 @@ class CreateOrderView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"message": "Заказ успешно создан.", "order_id": order.id}, status=status.HTTP_201_CREATED)
+
+
+class CartItemUpdateDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        """Обновление количества товара в корзине"""
+        cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
+        quantity = request.data.get('quantity')
+        if quantity is None or int(quantity) <= 0:
+            return Response({'error': 'Invalid quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        return Response({'message': 'Item quantity updated'}, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        """Удаление товара из корзины"""
+        cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
+        cart_item.delete()
+        return Response({'message': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
