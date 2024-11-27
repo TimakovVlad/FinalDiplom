@@ -1,9 +1,12 @@
 from rest_framework import viewsets, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
+from .filters import ProductFilter
 from rest_framework.permissions import IsAuthenticated
 from products.tasks import import_products_from_yaml
 
@@ -18,6 +21,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = ProductFilter
+    search_fields = ['name', 'description']
     http_method_names = ['get', 'post', 'put', 'delete']
 
     def create(self, request, *args, **kwargs):
