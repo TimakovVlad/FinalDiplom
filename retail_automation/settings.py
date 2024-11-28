@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
     # другие приложения
     'django_extensions',
+    'drf_spectacular',
 
     # DRF
     'rest_framework',
@@ -60,6 +61,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 

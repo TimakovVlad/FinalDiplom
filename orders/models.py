@@ -40,6 +40,25 @@ class Order(models.Model):
         self.total_amount = sum(item.price * item.quantity for item in self.items.all())
         self.save()
 
+    def change_status(self, new_status):
+        """
+        Меняет статус заказа, если переход допустим.
+        """
+        allowed_transitions = {
+            'basket': ['new'],
+            'new': ['confirmed', 'canceled'],
+            'confirmed': ['assembled', 'canceled'],
+            'assembled': ['sent', 'canceled'],
+            'sent': ['delivered'],
+            'delivered': [],
+            'canceled': [],
+        }
+        if new_status not in allowed_transitions[self.status]:
+            raise ValueError(f"Переход из статуса {self.status} в {new_status} невозможен.")
+
+        self.status = new_status
+        self.save()
+
     def __str__(self):
         return f"Order {self.id} - {self.user.username} - {self.status}"
 

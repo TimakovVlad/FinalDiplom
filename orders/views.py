@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from .models import Order, OrderItem, Cart, CartItem, Contact, Product
 from .serializers import OrderSerializer, OrderItemSerializer, CartSerializer, CartItemSerializer
@@ -28,6 +29,24 @@ class OrderViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(self.get_queryset().filter(user=request.user))
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['patch'], url_path='change-status')
+    def change_status(self, request, pk=None):
+        """
+        Изменение статуса заказа.
+        """
+        order = self.get_object()
+        new_status = request.data.get('status')
+
+        if not new_status:
+            return Response({'error': 'Необходимо указать новый статус.'}, status=400)
+
+        try:
+            order.change_status(new_status)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+
+        return Response({'message': 'Статус успешно обновлен.', 'new_status': order.status})
 
     def create_from_cart(self, request):
         """Создание заказа на основе корзины"""
