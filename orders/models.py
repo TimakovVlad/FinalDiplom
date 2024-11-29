@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.db import models
 from products.models import Product
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Cart(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart')
@@ -84,3 +87,20 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class Address(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='addresses')
+    title = models.CharField(max_length=255, verbose_name="Название адреса")
+    address_line = models.TextField(verbose_name="Адрес")
+    city = models.CharField(max_length=100, verbose_name="Город")
+    postal_code = models.CharField(max_length=20, verbose_name="Почтовый индекс")
+    country = models.CharField(max_length=100, verbose_name="Страна")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Адрес"
+        verbose_name_plural = "Адреса"
+
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"

@@ -1,11 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import OrderViewSet, CartViewSet
+from .views import OrderViewSet, CartViewSet, AddressViewSet
 
 # Создаём маршруты для ViewSet'ов
 router = DefaultRouter()
 router.register(r'orders', OrderViewSet, basename='order')
 router.register(r'cart', CartViewSet, basename='cart')
+router.register(r'addresses', AddressViewSet, basename='address')
 
 # Подключаем маршруты
 urlpatterns = [

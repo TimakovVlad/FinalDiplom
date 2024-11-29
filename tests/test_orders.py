@@ -79,6 +79,16 @@ def test_status_transitions(auth_client, contact, cart):
     response = auth_client.get(f"/api/orders/orders/{order_id}/")
     assert response.status_code == 200, "Не удалось получить детали заказа."
 
+    # Обновляем статус заказа на 'confirmed'
+    response = auth_client.patch(f"/api/orders/orders/{order_id}/", {"status": "confirmed"})
+    assert response.status_code == 200, "Не удалось обновить статус на 'confirmed'."
+    assert response.data["status"] == "confirmed"
+
+    # Обновляем статус заказа на 'assembled'
+    response = auth_client.patch(f"/api/orders/orders/{order_id}/", {"status": "assembled"})
+    assert response.status_code == 200, "Не удалось обновить статус на 'assembled'."
+    assert response.data["status"] == "assembled"
+
 
 
 @pytest.mark.django_db

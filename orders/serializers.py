@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem, Cart, CartItem
+from .models import Order, OrderItem, Cart, CartItem, Address
 
 class OrderItemSerializer(serializers.ModelSerializer):
     # Сериализатор для единицы товара в заказе
@@ -40,3 +40,9 @@ class CartSerializer(serializers.ModelSerializer):
         model = Cart
         fields = ['id', 'user', 'items']
         read_only_fields = ['user']
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'title', 'address_line', 'city', 'postal_code', 'country', 'created_at']
+        read_only_fields = ['id', 'created_at']

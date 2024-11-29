@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # другие приложения
     'django_extensions',
     'drf_spectacular',
+    'django_celery_beat',
 
     # DRF
     'rest_framework',
@@ -151,3 +152,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+# Результаты задач
+CELERY_RESULT_BACKEND = 'django-db'
+
+# Таймзона для задач
+CELERY_TIMEZONE = 'UTC'
+
+# Настройка сохранения результатов
+INSTALLED_APPS += [
+    'django_celery_results',
+]

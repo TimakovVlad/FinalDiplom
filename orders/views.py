@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from .models import Order, OrderItem, Cart, CartItem, Contact, Product
-from .serializers import OrderSerializer, OrderItemSerializer, CartSerializer, CartItemSerializer
+from .models import Order, OrderItem, Cart, CartItem, Contact, Address
+from .serializers import OrderSerializer, CartSerializer, CartItemSerializer, AddressSerializer
 from products.models import Product
 from .services import create_order_from_cart
 
@@ -226,3 +226,17 @@ class CartItemUpdateDeleteView(APIView):
         cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
         cart_item.delete()
         return Response({'message': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    queryset = Address.objects.all()
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Возвращаем адреса только текущего пользователя
+        return self.queryset.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Устанавливаем текущего пользователя как владельца адреса
+        serializer.save(user=self.request.user)
