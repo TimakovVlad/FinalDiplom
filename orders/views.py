@@ -8,6 +8,8 @@ from .models import Order, OrderItem, Cart, CartItem, Contact, Address
 from .serializers import OrderSerializer, CartSerializer, CartItemSerializer, AddressSerializer
 from products.models import Product
 from .services import create_order_from_cart
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -48,6 +50,14 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         return Response({'message': 'Статус успешно обновлен.', 'new_status': order.status})
 
+    def send_order_confirmation_email(self, order):
+        subject = f"Подтверждение заказа №{order.id}"
+        # Динамическое получение данных о заказе
+        details = f"Товары в заказе: {', '.join([item.product.name for item in order.items.all()])}, Общая сумма: {order.total_amount}"
+        message = f"Ваш заказ №{order.id} успешно подтвержден. Данные заказа: {details}"
+        recipient = order.contact.email
+        send_mail(subject, message, 'no-reply@example.com', [recipient])
+
     def create_from_cart(self, request):
         """Создание заказа на основе корзины"""
         cart = Cart.objects.filter(user=request.user).first()
@@ -80,6 +90,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         cart.items.all().delete()
 
         serializer = OrderSerializer(order)
+
+        # Отправляем письмо с подтверждением заказа
+        self.send_order_confirmation_email(order)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
