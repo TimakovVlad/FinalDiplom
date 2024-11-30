@@ -52,7 +52,6 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def send_order_confirmation_email(self, order):
         subject = f"Подтверждение заказа №{order.id}"
-        # Динамическое получение данных о заказе
         details = f"Товары в заказе: {', '.join([item.product.name for item in order.items.all()])}, Общая сумма: {order.total_amount}"
         message = f"Ваш заказ №{order.id} успешно подтвержден. Данные заказа: {details}"
         recipient = order.contact.email
@@ -70,6 +69,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Contact.DoesNotExist:
             return Response({'error': 'Contact not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Создаем заказ
         order = Order.objects.create(user=request.user, contact=contact)
 
         # Переносим элементы корзины в заказ
@@ -97,72 +97,21 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CartViewSet(viewsets.ViewSet):
+class CartView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def list(self, request):
+    def get(self, request):
         """Получение текущей корзины пользователя"""
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        serializer = CartSerializer(cart)
-        return Response(serializer.data)
-
-    def create(self, request):
-        """Добавление товара в корзину"""
-        product_id = request.data.get('product_id')
-        quantity = request.data.get('quantity', 1)
-
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-            defaults={'quantity': request.data.get('quantity', 1)}  # По умолчанию 1
-        )
-
-        if not created:
-            # Если товар уже в корзине, увеличиваем количество
-            cart_item.quantity += int(request.data.get('quantity', 1))
-        else:
-            cart_item.quantity = quantity
-        cart_item.save()
-
-        return Response({'message': 'Item added to cart'}, status=status.HTTP_201_CREATED)
-
-    def update(self, request, pk=None):
-        """Обновление количества товара в корзине"""
-        try:
-            cart_item = CartItem.objects.get(pk=pk, cart__user=request.user)
-        except CartItem.DoesNotExist:
-            return Response({'error': 'Item not found in cart'}, status=status.HTTP_404_NOT_FOUND)
-
-        quantity = request.data.get('quantity')
-        if quantity is None or int(quantity) <= 0:
-            return Response({'error': 'Invalid quantity'}, status=status.HTTP_400_BAD_REQUEST)
-
-        cart_item.quantity = quantity
-        cart_item.save()
-
-        return Response({'message': 'Item quantity updated'}, status=status.HTTP_200_OK)
-
-    def destroy(self, request, pk=None):
-        """Удаление товара из корзины"""
-        try:
-            cart_item = CartItem.objects.get(pk=pk, cart__user=request.user)
-        except CartItem.DoesNotExist:
-            return Response({'error': 'Item not found in cart'}, status=status.HTTP_404_NOT_FOUND)
-
-        cart_item.delete()
-        return Response({'message': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
-
+        cart = get_object_or_404(Cart, user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        serializer = CartItemSerializer(cart_items, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class AddToCartView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """Добавление товара в корзину"""
         user = request.user
         product_id = request.data.get('product_id')
         quantity = request.data.get('quantity', 1)
@@ -178,47 +127,6 @@ class AddToCartView(APIView):
         cart_item.save()
 
         return Response({"message": "Продукт успешно добавлен в корзину."}, status=status.HTTP_201_CREATED)
-
-class CartView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        cart = get_object_or_404(Cart, user=user)
-        cart_items = CartItem.objects.filter(cart=cart)
-        serializer = CartItemSerializer(cart_items, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class RemoveFromCartView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request, item_id):
-        user = request.user
-        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=user)
-        cart_item.delete()
-        return Response({"message": "Продукт успешно удален из корзины."}, status=status.HTTP_200_OK)
-
-
-class CreateOrderView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        contact_id = request.data.get('contact_id')
-
-        try:
-            contact = Contact.objects.get(id=contact_id, user=user)
-        except Contact.DoesNotExist:
-            return Response({"error": "Контакт не найден."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            order = create_order_from_cart(user, contact)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"message": "Заказ успешно создан.", "order_id": order.id}, status=status.HTTP_201_CREATED)
-
 
 class CartItemUpdateDeleteView(APIView):
     permission_classes = [IsAuthenticated]
@@ -242,15 +150,58 @@ class CartItemUpdateDeleteView(APIView):
         return Response({'message': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
 
 
+
+class RemoveFromCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, item_id):
+        user = request.user
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=user)
+        cart_item.delete()
+        return Response({"message": "Продукт успешно удален из корзины."}, status=status.HTTP_200_OK)
+
+
+class OrderDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        """Получение информации о заказе"""
+        order = get_object_or_404(Order, pk=pk, user=request.user)
+        serializer = OrderSerializer(order)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk):
+        """Обновление статуса заказа"""
+        order = get_object_or_404(Order, pk=pk, user=request.user)
+        new_status = request.data.get('status')
+
+        if not new_status:
+            return Response({'error': 'Необходимо указать новый статус.'}, status=400)
+
+        try:
+            order.change_status(new_status)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+
+        return Response({'message': 'Статус успешно обновлен.', 'new_status': order.status})
+
+
 class AddressViewSet(viewsets.ModelViewSet):
     queryset = Address.objects.all()
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Возвращаем адреса только текущего пользователя
+        # Возвращаем только адреса текущего пользователя
         return self.queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         # Устанавливаем текущего пользователя как владельца адреса
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Проверяем, что адрес принадлежит текущему пользователю
+        address = self.get_object()
+        if address.user != request.user:
+            return Response({"error": "You cannot delete this address."}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
