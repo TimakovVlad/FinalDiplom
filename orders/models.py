@@ -56,6 +56,7 @@ class Order(models.Model):
             'delivered': [],
             'canceled': [],
         }
+
         if new_status not in allowed_transitions[self.status]:
             raise ValueError(f"Переход из статуса {self.status} в {new_status} невозможен.")
 

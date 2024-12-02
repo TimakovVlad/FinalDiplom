@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from .my_auth import email_host_user, email_host_password
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -169,5 +170,5 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # Real
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'sanavasa00@gmail.com'  # Ваш email
-EMAIL_HOST_PASSWORD = 'zxnmasklqwop'  # Пароль от email
+EMAIL_HOST_USER = email_host_user  # Ваш email
+EMAIL_HOST_PASSWORD = email_host_password  # Пароль от email (добавьте их в файл auth.py)

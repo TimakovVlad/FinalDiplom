@@ -5,11 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from .models import Order, OrderItem, Cart, CartItem, Contact, Address
-from .serializers import OrderSerializer, CartSerializer, CartItemSerializer, AddressSerializer
+from .serializers import OrderSerializer, CartItemSerializer, AddressSerializer
 from products.models import Product
-from .services import create_order_from_cart
 from django.core.mail import send_mail
-from django.conf import settings
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -27,28 +25,42 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def list(self, request, *args, **kwargs):
-        """Получение списка заказов пользователя"""
+        """Получение списка заказов текущего пользователя"""
+        # Фильтруем заказы по текущему пользователю
         queryset = self.filter_queryset(self.get_queryset().filter(user=request.user))
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        """Получение деталей заказа по ID"""
+        # Получаем заказ по pk, проверяя принадлежность к текущему пользователю
+        order = self.get_object()
+        if order.user != request.user:
+            return Response({'error': 'Вы не можете просматривать этот заказ.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['patch'], url_path='change-status')
     def change_status(self, request, pk=None):
-        """
-        Изменение статуса заказа.
-        """
+        """Изменение статуса заказа"""
         order = self.get_object()
         new_status = request.data.get('status')
 
         if not new_status:
             return Response({'error': 'Необходимо указать новый статус.'}, status=400)
 
+        # Проверяем, что новый статус корректен
+        valid_statuses = dict(Order._meta.get_field('status').choices)
+        if new_status not in valid_statuses:
+            return Response({'error': 'Некорректный статус.'}, status=400)
+
         try:
             order.change_status(new_status)
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
 
-        return Response({'message': 'Статус успешно обновлен.', 'new_status': order.status})
+        return Response({'message': 'Статус успешно обновлен.', 'status': order.status})
 
     def send_order_confirmation_email(self, order):
         subject = f"Подтверждение заказа №{order.id}"
@@ -61,16 +73,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         """Создание заказа на основе корзины"""
         cart = Cart.objects.filter(user=request.user).first()
         if not cart or not cart.items.exists():
-            return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Корзина пуста'}, status=status.HTTP_400_BAD_REQUEST)
 
         contact_id = request.data.get('contact_id')
         try:
             contact = Contact.objects.get(id=contact_id, user=request.user)
         except Contact.DoesNotExist:
-            return Response({'error': 'Contact not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Контакт не найден'}, status=status.HTTP_404_NOT_FOUND)
 
         # Создаем заказ
-        order = Order.objects.create(user=request.user, contact=contact)
+        order = Order.objects.create(user=request.user, contact=contact, status='new')
 
         # Переносим элементы корзины в заказ
         total_amount = 0
@@ -169,21 +181,6 @@ class OrderDetailView(APIView):
         order = get_object_or_404(Order, pk=pk, user=request.user)
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, pk):
-        """Обновление статуса заказа"""
-        order = get_object_or_404(Order, pk=pk, user=request.user)
-        new_status = request.data.get('status')
-
-        if not new_status:
-            return Response({'error': 'Необходимо указать новый статус.'}, status=400)
-
-        try:
-            order.change_status(new_status)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=400)
-
-        return Response({'message': 'Статус успешно обновлен.', 'new_status': order.status})
 
 
 class AddressViewSet(viewsets.ModelViewSet):
