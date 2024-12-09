@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status, serializers
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from social_django.utils import psa
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
@@ -137,3 +138,15 @@ class ChangePasswordView(APIView):
             return Response({"message": "Пароль успешно изменен."}, status=status.HTTP_200_OK)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class SocialLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    @psa('social:complete')
+    def post(self, request, backend):
+        """Обработка аутентификации через социальные сети"""
+        user = request.backend.do_auth(request.data.get('access_token'))
+        if user:
+            # Вы можете вернуть токен для дальнейшего использования
+            return Response({"message": "Успешная аутентификация", "user": user.username}, status=status.HTTP_200_OK)
+        return Response({"error": "Ошибка аутентификации"}, status=status.HTTP_400_BAD_REQUEST)

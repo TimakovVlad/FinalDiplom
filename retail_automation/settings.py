@@ -11,8 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-from .my_auth import email_host_user, email_host_password
-
+from baton.ai import AIModels
+from .my_auth import email_host_user, email_host_password, your_client_id, your_client_secret
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'django_extensions',
     'drf_spectacular',
     'django_celery_beat',
+    'baton',
+    'baton.autodiscover',
 
     # DRF
     'rest_framework',
@@ -70,7 +72,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'user': '5/minute',     # 5 запросов в минуту для авторизованных пользователей
-        'anon': '1/minute',     # 1 запрос в минуту для анонимных пользователей
+        'anon': '5/minute',     # 1 запрос в минуту для анонимных пользователей
     },
 }
 
@@ -103,6 +105,72 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'retail_automation.wsgi.application'
+
+BATON = {
+    'SITE_HEADER': 'Baton',
+    'SITE_TITLE': 'Baton',
+    'INDEX_TITLE': 'Site administration',
+    'SUPPORT_HREF': 'https://github.com/otto-torino/django-baton/issues',
+    'COPYRIGHT': 'copyright © 2020 <a href="https://www.otto.to.it">Otto srl</a>', # noqa
+    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_MULTIPART_UPLOADING': True,
+    'ENABLE_IMAGES_PREVIEW': True,
+    'CHANGELIST_FILTERS_IN_MODAL': True,
+    'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
+    'CHANGELIST_FILTERS_FORM': True,
+    'CHANGEFORM_FIXED_SUBMIT_ROW': True,
+    'MENU_ALWAYS_COLLAPSED': False,
+    'MENU_TITLE': 'Menu',
+    'MESSAGES_TOASTS': False,
+    'GRAVATAR_DEFAULT_IMG': 'retro',
+    'GRAVATAR_ENABLED': True,
+    'LOGIN_SPLASH': '/static/core/img/login-splash.png',
+    'FORCE_THEME': None,
+    'SEARCH_FIELD': {
+        'label': 'Search contents...',
+        'url': '/search/',
+    },
+    'BATON_CLIENT_ID': 'xxxxxxxxxxxxxxxxxxxx',
+    'BATON_CLIENT_SECRET': 'xxxxxxxxxxxxxxxxxx',
+    'AI': {
+        "MODELS": "myapp.foo.bar", # alternative to the below for lines, a function which returns the models dictionary
+        "IMAGES_MODEL": AIModels.BATON_DALL_E_3,
+        "VISION_MODEL": AIModels.BATON_GPT_4O_MINI,
+        "SUMMARIZATIONS_MODEL": AIModels.BATON_GPT_4O_MINI,
+        "TRANSLATIONS_MODEL": AIModels.BATON_GPT_4O,
+        'ENABLE_TRANSLATIONS': True,
+        'ENABLE_CORRECTIONS': True,
+        'CORRECTION_SELECTORS': ["textarea", "input[type=text]:not(.vDateField):not([name=username]):not([name*=subject_location])"],
+        "CORRECTIONS_MODEL": AIModels.BATON_GPT_3_5_TURBO,
+    },
+    'MENU': (
+        { 'type': 'title', 'label': 'main', 'apps': ('auth', ) },
+        {
+            'type': 'app',
+            'name': 'auth',
+            'label': 'Authentication',
+            'icon': 'fa fa-lock',
+            'models': (
+                {
+                    'name': 'user',
+                    'label': 'Users'
+                },
+                {
+                    'name': 'group',
+                    'label': 'Groups'
+                },
+            )
+        },
+        { 'type': 'title', 'label': 'Contents', 'apps': ('flatpages', ) },
+        { 'type': 'model', 'label': 'Pages', 'name': 'flatpage', 'app': 'flatpages' },
+        { 'type': 'free', 'label': 'Custom Link', 'url': 'http://www.google.it', 'perms': ('flatpages.add_flatpage', 'auth.change_user') },
+        { 'type': 'free', 'label': 'My parent voice', 'default_open': True, 'children': [
+            { 'type': 'model', 'label': 'A Model', 'name': 'mymodelname', 'app': 'myapp' },
+            { 'type': 'free', 'label': 'Another custom link', 'url': 'http://www.google.it' },
+        ] },
+    )
+}
 
 
 # Database
@@ -179,3 +247,17 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = email_host_user  # Ваш email
 EMAIL_HOST_PASSWORD = email_host_password  # Пароль от email (добавьте их в файл my_auth.py)
+
+AUTHENTICATION_BACKENDS = (
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',  # Оставляем базовый бэкенд для стандартной аутентификации
+)
+
+# Конфигурация для Google
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = your_client_id
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = your_client_secret #(добавьте их в файл my_auth.py)
+
+
+# Настройки для редиректа после успешной аутентификации
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
