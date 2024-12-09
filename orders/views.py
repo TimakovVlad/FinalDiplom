@@ -8,6 +8,7 @@ from .models import Order, OrderItem, Cart, CartItem, Contact, Address
 from .serializers import OrderSerializer, CartItemSerializer, AddressSerializer
 from products.models import Product
 from django.core.mail import send_mail
+from drf_spectacular.utils import extend_schema
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -16,6 +17,9 @@ class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]  # Только авторизованные пользователи
 
+    @extend_schema(
+        responses={201: OrderSerializer}
+    )
     def create(self, request, *args, **kwargs):
         # Переопределяем создание заказа
         serializer = self.get_serializer(data=request.data)
@@ -24,6 +28,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    @extend_schema(
+        responses={200: OrderSerializer(many=True)}
+    )
     def list(self, request, *args, **kwargs):
         """Получение списка заказов текущего пользователя"""
         # Фильтруем заказы по текущему пользователю
@@ -31,6 +38,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        responses={200: OrderSerializer}
+    )
     def retrieve(self, request, *args, **kwargs):
         """Получение деталей заказа по ID"""
         # Получаем заказ по pk, проверяя принадлежность к текущему пользователю
@@ -41,6 +51,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(order)
         return Response(serializer.data)
 
+    @extend_schema(
+        responses={200: OrderSerializer}
+    )
     @action(detail=True, methods=['patch'], url_path='change-status')
     def change_status(self, request, pk=None):
         """Изменение статуса заказа"""
@@ -69,6 +82,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         recipient = order.contact.email
         send_mail(subject, message, 'no-reply@example.com', [recipient])
 
+    @extend_schema(
+        responses={201: OrderSerializer}
+    )
     def create_from_cart(self, request):
         """Создание заказа на основе корзины"""
         cart = Cart.objects.filter(user=request.user).first()
@@ -112,6 +128,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: CartItemSerializer(many=True)}
+    )
     def get(self, request):
         """Получение текущей корзины пользователя"""
         cart = get_object_or_404(Cart, user=request.user)
@@ -119,9 +138,13 @@ class CartView(APIView):
         serializer = CartItemSerializer(cart_items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class AddToCartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={201: None}
+    )
     def post(self, request):
         """Добавление товара в корзину"""
         user = request.user
@@ -140,9 +163,13 @@ class AddToCartView(APIView):
 
         return Response({"message": "Продукт успешно добавлен в корзину."}, status=status.HTTP_201_CREATED)
 
+
 class CartItemUpdateDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: None}
+    )
     def patch(self, request, pk):
         """Обновление количества товара в корзине"""
         cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
@@ -155,6 +182,9 @@ class CartItemUpdateDeleteView(APIView):
 
         return Response({'message': 'Item quantity updated'}, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        responses={204: None}
+    )
     def delete(self, request, pk):
         """Удаление товара из корзины"""
         cart_item = get_object_or_404(CartItem, pk=pk, cart__user=request.user)
@@ -162,10 +192,12 @@ class CartItemUpdateDeleteView(APIView):
         return Response({'message': 'Item removed from cart'}, status=status.HTTP_204_NO_CONTENT)
 
 
-
 class RemoveFromCartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: None}
+    )
     def delete(self, request, item_id):
         user = request.user
         cart_item = get_object_or_404(CartItem, id=item_id, cart__user=user)
@@ -176,6 +208,9 @@ class RemoveFromCartView(APIView):
 class OrderDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: OrderSerializer}
+    )
     def get(self, request, pk):
         """Получение информации о заказе"""
         order = get_object_or_404(Order, pk=pk, user=request.user)
@@ -188,14 +223,23 @@ class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: AddressSerializer(many=True)}
+    )
     def get_queryset(self):
         # Возвращаем только адреса текущего пользователя
         return self.queryset.filter(user=self.request.user)
 
+    @extend_schema(
+        responses={201: AddressSerializer}
+    )
     def perform_create(self, serializer):
         # Устанавливаем текущего пользователя как владельца адреса
         serializer.save(user=self.request.user)
 
+    @extend_schema(
+        responses={204: None}
+    )
     def destroy(self, request, *args, **kwargs):
         # Проверяем, что адрес принадлежит текущему пользователю
         address = self.get_object()

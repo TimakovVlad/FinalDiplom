@@ -64,8 +64,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',  # Ограничение для авторизованных пользователей
+        'rest_framework.throttling.AnonRateThrottle',  # Ограничение для анонимных пользователей
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '5/minute',     # 5 запросов в минуту для авторизованных пользователей
+        'anon': '1/minute',     # 1 запрос в минуту для анонимных пользователей
+    },
 }
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -171,4 +178,4 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = email_host_user  # Ваш email
-EMAIL_HOST_PASSWORD = email_host_password  # Пароль от email (добавьте их в файл auth.py)
+EMAIL_HOST_PASSWORD = email_host_password  # Пароль от email (добавьте их в файл my_auth.py)

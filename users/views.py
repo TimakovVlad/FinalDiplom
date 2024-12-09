@@ -6,26 +6,71 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema
 
 User = get_user_model()
 
 class RegisterUserView(APIView):
-    # Регистрация доступна для всех
+    """
+    Регистрация пользователя. Доступно для всех.
+    """
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request={
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string",
+                    "description": "Имя пользователя"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "Адрес электронной почты"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "Пароль пользователя"
+                }
+            },
+            "required": ["username", "email", "password"]
+        },
+        responses={
+            201: {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Пользователь успешно зарегистрирован"
+                    }
+                }
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Все поля обязательны для заполнения"
+                    }
+                }
+            }
+        }
+    )
     def post(self, request):
-        # Получаем данные из запроса
+        """
+        Регистрация нового пользователя
+        """
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
 
         # Проверяем наличие обязательных полей
         if not username or not email or not password:
-            return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Все поля обязательны для заполнения'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Проверка на существование пользователя
         if User.objects.filter(username=username).exists():
-            return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Имя пользователя уже существует'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Проверяем пароль на валидность
         try:
@@ -35,7 +80,7 @@ class RegisterUserView(APIView):
 
         # Создаем пользователя
         user = User.objects.create_user(username=username, email=email, password=password)
-        return Response({'message': 'User created successfully'}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Пользователь успешно зарегистрирован'}, status=status.HTTP_201_CREATED)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -44,8 +89,34 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class ChangePasswordView(APIView):
+    """
+    Изменение пароля пользователя. Доступно только для авторизованных пользователей.
+    """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=ChangePasswordSerializer,
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Пароль успешно изменен."
+                    }
+                }
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "old_password": {
+                        "type": "string",
+                        "example": "Неверный старый пароль."
+                    }
+                }
+            }
+        }
+    )
     def patch(self, request):
         """Изменение пароля пользователя"""
         user = request.user

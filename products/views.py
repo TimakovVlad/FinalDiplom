@@ -4,6 +4,7 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAdminUser
+from drf_spectacular.utils import extend_schema
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
 from .filters import ProductFilter
@@ -26,6 +27,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     http_method_names = ['get', 'post', 'put', 'delete']
 
+    @extend_schema(
+        request=ProductSerializer,
+        responses={201: ProductSerializer}
+    )
     def create(self, request, *args, **kwargs):
         """Добавление нового продукта"""
         serializer = self.get_serializer(data=request.data)
@@ -33,6 +38,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        request=ProductSerializer,
+        responses={200: ProductSerializer}
+    )
     def update(self, request, *args, **kwargs):
         """Обновление информации о продукте"""
         partial = kwargs.pop('partial', False)
@@ -46,6 +55,38 @@ class ImportProductsView(APIView):
     """Запуск импорта товаров из YAML"""
     permission_classes = [IsAdminUser]
 
+    @extend_schema(
+        request={
+            "type": "object",
+            "properties": {
+                "yaml_path": {
+                    "type": "string",
+                    "description": "Путь к YAML-файлу с данными для импорта"
+                }
+            },
+            "required": ["yaml_path"]
+        },
+        responses={
+            202: {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "example": "Импорт начат. Проверьте Celery задачи для статуса выполнения."
+                    }
+                }
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Не указан путь к YAML-файлу"
+                    }
+                }
+            }
+        }
+    )
     def post(self, request):
         yaml_path = request.data.get('yaml_path')
         if not yaml_path:
