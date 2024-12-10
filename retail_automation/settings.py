@@ -283,3 +283,21 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     send_default_pii=True,  # Отправка личных данных пользователя в Sentry
 )
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6380/1',  # изменённый порт
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+CACHEOPS = {
+    'default': {
+        'timeout': 60 * 15,  # Кэшируем запросы на 15 минут
+    },
+    'products.product': {'ops': 'all', 'timeout': 60*5},  # Кэширование всех операций с продуктами на 5 минут
+}

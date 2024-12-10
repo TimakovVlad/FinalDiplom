@@ -12,7 +12,7 @@ from .filters import ProductFilter
 from rest_framework.permissions import IsAuthenticated
 from products.tasks import import_products_from_yaml
 from .tasks import create_product_thumbnail
-import sentry_sdk
+import time
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """CRUD для категорий"""
@@ -36,6 +36,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         """Добавление нового продукта"""
+        # Замеряем время до запроса
+        start_time = time.time()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -46,6 +48,12 @@ class ProductViewSet(viewsets.ModelViewSet):
         if 'image' in request.data:
             image_path = product.image.path
             create_product_thumbnail.delay(image_path)  # Запускаем задачу Celery
+
+        # Замеряем время после выполнения запроса
+        end_time = time.time()
+        # Вычисляем время отклика
+        elapsed_time = end_time - start_time
+        print(f"Time taken to fetch products: {elapsed_time:.4f} seconds")
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

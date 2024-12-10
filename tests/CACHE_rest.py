@@ -32,19 +32,37 @@ def create_category(token, name):
     else:
         print("Ошибка при создании категории:", response.status_code, response.text)
 
-
-if token:
-    # URL для вызова API, который вызывает исключение (или ваш нужный API)
-    api_url = "http://127.0.0.1:8000/api/products/error/trigger-error/"
-
-    # Заголовки с токеном для авторизации
+def create_product(token):
     headers = {
         "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
     }
+    data = {
+        "name": "Тестовый продукт3",
+        "description": "Описание тестового продукта2",
+        "category": 3,
+        "supplier": "Тестовый поставщик2",
+        "price": "500.00",
+        "quantity": 10,
+        "parameters": {
+            "color": "red",
+            "size": "L"
+        }
+    }
+    response = requests.post(BASE_URL + "products/", headers=headers, json=data)
+    if response.status_code == 201:
+        print("Продукт успешно создан:", response.json())
+    else:
+        print("Ошибка при создании продукта:", response.status_code, response.text)
 
-    # Отправляем запрос с авторизацией
-    api_response = requests.get(api_url, headers=headers)
+if token:
+    create_category(token, "Тестовая категория3")
+    create_product(token)
 
-    # Выводим результат
-    print(api_response.status_code)
-    print(api_response.json())
+# [10/Dec/2024 17:00:55] "POST /api/products/categories/ HTTP/1.1" 400 52
+# [10/Dec/2024 17:00:55] "POST /api/products/ HTTP/1.1" 201 307
+# Time taken to fetch products: 0.0234 seconds
+# [10/Dec/2024 17:01:55] "POST /api/users/login/ HTTP/1.1" 200 483
+# [10/Dec/2024 17:01:55] "POST /api/products/categories/ HTTP/1.1" 201 54
+# Time taken to fetch products: 0.0131 seconds
+# [10/Dec/2024 17:01:55] "POST /api/products/ HTTP/1.1" 201 321
