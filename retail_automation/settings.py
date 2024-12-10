@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from baton.ai import AIModels
-from .my_auth import email_host_user, email_host_password, your_client_id, your_client_secret
+from .my_auth import email_host_user, email_host_password, your_client_id, your_client_secret, my_dsn
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -266,9 +268,18 @@ AUTHENTICATION_BACKENDS = (
 
 # Конфигурация для Google
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = your_client_id
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = your_client_secret #(добавьте их в файл my_auth.py)
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = your_client_secret # добавьте их в файл my_auth.py
 
 
 # Настройки для редиректа после успешной аутентификации
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+# Инициализируем Sentry
+sentry_sdk.init(
+    dsn=my_dsn,                                     # добавьте в файл my_auth.py
+    integrations=[DjangoIntegration()],
+    # Set traces_sample_rate to 1.0 to capture 100%
+    traces_sample_rate=1.0,
+    send_default_pii=True,  # Отправка личных данных пользователя в Sentry
+)

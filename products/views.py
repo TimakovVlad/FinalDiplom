@@ -3,7 +3,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
+from rest_framework.exceptions import APIException
 from drf_spectacular.utils import extend_schema
 from .models import Category, Product
 from .serializers import CategorySerializer, ProductSerializer
@@ -11,6 +12,7 @@ from .filters import ProductFilter
 from rest_framework.permissions import IsAuthenticated
 from products.tasks import import_products_from_yaml
 from .tasks import create_product_thumbnail
+import sentry_sdk
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """CRUD для категорий"""
@@ -103,3 +105,14 @@ class ImportProductsView(APIView):
 
         import_products_from_yaml.delay(yaml_path)
         return Response({"message": "Импорт начат. Проверьте Celery задачи для статуса выполнения."}, status=202)
+
+
+class TriggerErrorView(APIView):
+    """API View, который вызывает исключение для тестирования Sentry"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Искусственная ошибка
+        division_by_zero = 1 / 0
+        print(division_by_zero)
+        return Response({"message": "Error triggered!"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
