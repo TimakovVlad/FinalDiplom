@@ -10,6 +10,7 @@ from .serializers import CategorySerializer, ProductSerializer
 from .filters import ProductFilter
 from rest_framework.permissions import IsAuthenticated
 from products.tasks import import_products_from_yaml
+from .tasks import create_product_thumbnail
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """CRUD для категорий"""
@@ -36,6 +37,14 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        # Сохраняем продукт
+        product = serializer.save()
+
+        # Если изображение присутствует, запускаем обработку в фоновом режиме
+        if 'image' in request.data:
+            image_path = product.image.path
+            create_product_thumbnail.delay(image_path)  # Запускаем задачу Celery
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(

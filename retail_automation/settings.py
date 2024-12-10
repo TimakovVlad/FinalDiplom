@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'baton',
     'baton.autodiscover',
+    'easy_thumbnails',
 
     # DRF
     'rest_framework',
@@ -105,6 +106,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'retail_automation.wsgi.application'
+
+
+THUMBNAIL_ALIASES = {
+    '': {
+        'small': {'size': (50, 50), 'crop': True},  # Миниатюра 50x50
+        'medium': {'size': (200, 200), 'crop': True},  # Миниатюра 200x200
+        'large': {'size': (500, 500), 'crop': True},  # Миниатюра 500x500
+    },
+}
+
 
 BATON = {
     'SITE_HEADER': 'Baton',

@@ -8,12 +8,14 @@ from social_django.utils import psa
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
+from .models import UserProfile
+from .tasks import generate_thumbnail  # Задача для асинхронного создания миниатюр
 
 User = get_user_model()
 
 class RegisterUserView(APIView):
     """
-    Регистрация пользователя. Доступно для всех.
+    Регистрация пользователя с аватаром. Доступно для всех.
     """
     permission_classes = [AllowAny]
 
@@ -21,18 +23,10 @@ class RegisterUserView(APIView):
         request={
             "type": "object",
             "properties": {
-                "username": {
-                    "type": "string",
-                    "description": "Имя пользователя"
-                },
-                "email": {
-                    "type": "string",
-                    "description": "Адрес электронной почты"
-                },
-                "password": {
-                    "type": "string",
-                    "description": "Пароль пользователя"
-                }
+                "username": {"type": "string", "description": "Имя пользователя"},
+                "email": {"type": "string", "description": "Адрес электронной почты"},
+                "password": {"type": "string", "description": "Пароль пользователя"},
+                "avatar": {"type": "string", "format": "binary", "description": "Аватар пользователя (необязательно)"}
             },
             "required": ["username", "email", "password"]
         },
@@ -40,30 +34,25 @@ class RegisterUserView(APIView):
             201: {
                 "type": "object",
                 "properties": {
-                    "message": {
-                        "type": "string",
-                        "example": "Пользователь успешно зарегистрирован"
-                    }
+                    "message": {"type": "string", "example": "Пользователь успешно зарегистрирован"}
                 }
             },
             400: {
                 "type": "object",
                 "properties": {
-                    "error": {
-                        "type": "string",
-                        "example": "Все поля обязательны для заполнения"
-                    }
+                    "error": {"type": "string", "example": "Все поля обязательны для заполнения"}
                 }
             }
         }
     )
     def post(self, request):
         """
-        Регистрация нового пользователя
+        Регистрация нового пользователя с аватаром (если передан).
         """
         username = request.data.get('username')
         email = request.data.get('email')
         password = request.data.get('password')
+        avatar = request.FILES.get('avatar')
 
         # Проверяем наличие обязательных полей
         if not username or not email or not password:
@@ -81,6 +70,18 @@ class RegisterUserView(APIView):
 
         # Создаем пользователя
         user = User.objects.create_user(username=username, email=email, password=password)
+
+        # Создаем профиль пользователя и загружаем аватар, если он есть
+        user_profile = UserProfile.objects.create(user=user)
+        if avatar:
+            user_profile.avatar = avatar
+            user_profile.save()
+
+            # Асинхронно генерируем миниатюры для аватара
+            generate_thumbnail.delay(user_profile.avatar.path, size='small')
+            generate_thumbnail.delay(user_profile.avatar.path, size='medium')
+            generate_thumbnail.delay(user_profile.avatar.path, size='large')
+
         return Response({'message': 'Пользователь успешно зарегистрирован'}, status=status.HTTP_201_CREATED)
 
 

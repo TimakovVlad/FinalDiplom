@@ -8,7 +8,8 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    image = serializers.ImageField(required=False)  # Добавлено поле для изображения
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'description', 'category', 'category_name', 'supplier', 'price', 'quantity', 'parameters']
+        fields = ['id', 'name', 'description', 'category', 'category_name', 'supplier', 'price', 'quantity', 'parameters', 'image']
